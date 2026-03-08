@@ -43,13 +43,13 @@ export function PresentationPage() {
           >
             <div className="relative">
               <img
-                src="/assets/WhatsApp Image 2026-02-03 at 12.36.53 AM.jpeg"
+                src="/assets/uploads/WhatsApp-Image-2026-03-09-at-2.08.08-AM-1.jpeg"
                 alt="Ashfaq Sheikh"
                 className="rounded-2xl shadow-2xl w-full max-w-md transform hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-6 py-3 rounded-full border border-border/50 shadow-xl">
                 <p className="font-semibold text-warm-orange">
-                  Your Mentor: Ashfaq Sheikh
+                  Your Guidance: Ashfaq Sheikh
                 </p>
               </div>
             </div>
@@ -191,7 +191,12 @@ export function PresentationPage() {
             <Button
               size="lg"
               onClick={() => navigate({ to: "/sales" })}
-              className="bg-warm-orange hover:bg-warm-orange/90 text-white text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+              className="text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold"
+              style={{
+                backgroundColor: "#e8650a",
+                color: "#ffffff",
+                border: "none",
+              }}
             >
               Next Step Dekhein
               <ArrowRight className="ml-2 h-5 w-5" />

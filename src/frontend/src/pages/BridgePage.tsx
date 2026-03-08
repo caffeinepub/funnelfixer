@@ -48,7 +48,7 @@ export function BridgePage() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="flex justify-center">
                 <img
-                  src="/assets/WhatsApp Image 2026-02-03 at 12.36.53 AM.jpeg"
+                  src="/assets/uploads/WhatsApp-Image-2026-03-09-at-2.08.08-AM-1.jpeg"
                   alt="Ashfaq Sheikh"
                   className="rounded-xl shadow-2xl w-full max-w-sm transform hover:scale-105 transition-transform duration-500"
                 />
@@ -56,20 +56,19 @@ export function BridgePage() {
 
               <div className="space-y-6">
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Hi, main Ashfaq Sheikh hoon. Maine bhi wahi galtiyan ki hain
-                  jo aap kar rahe hain. Lekin ab main aapko woh system sikhaunga
-                  jo{" "}
-                  <span className="font-semibold text-foreground">
-                    actually kaam karta hai
-                  </span>
-                  .
+                  Hi, main Ashfaq Sheikh hoon. Main aapka{" "}
+                  <span className="font-semibold text-warm-orange">
+                    guidance
+                  </span>{" "}
+                  hoon — woh insaan jo khud 4 saal bhatak ke yeh rasta dhundh
+                  chuka hai. Ab main aapko shortcut dikhaaunga.
                 </p>
                 <p className="text-lg text-muted-foreground leading-relaxed">
                   Yeh sirf links share karne ka game nahi hai. Yeh ek{" "}
                   <span className="font-semibold text-warm-orange">
                     system build karne
                   </span>{" "}
-                  ka game hai.
+                  ka game hai — jo 24/7 aapke liye kaam kare.
                 </p>
               </div>
             </div>
@@ -283,7 +282,12 @@ export function BridgePage() {
           <Button
             size="lg"
             onClick={() => navigate({ to: "/opt-in" })}
-            className="bg-warm-orange hover:bg-warm-orange/90 text-white text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+            className="text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold"
+            style={{
+              backgroundColor: "#e8650a",
+              color: "#ffffff",
+              border: "none",
+            }}
           >
             Watch Free Training
             <ArrowRight className="ml-2 h-5 w-5" />

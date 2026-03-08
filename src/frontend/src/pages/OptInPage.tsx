@@ -162,7 +162,12 @@ export function OptInPage() {
                 type="submit"
                 size="lg"
                 disabled={isPending}
-                className="w-full bg-warm-orange hover:bg-warm-orange/90 text-white text-lg py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                className="w-full text-lg py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold"
+                style={{
+                  backgroundColor: "#e8650a",
+                  color: "#ffffff",
+                  border: "none",
+                }}
               >
                 {isPending ? (
                   <>
