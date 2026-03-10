@@ -133,75 +133,90 @@ export function SalesPage() {
             </p>
           </div>
 
-          {/* Coupon Section */}
+          {/* Coupon Section — mobile-first, stacked layout */}
           <div
-            className={`relative overflow-hidden bg-gradient-to-br from-warm-orange/20 to-cool-blue/20 rounded-2xl border-2 border-warm-orange/50 p-8 md:p-12 shadow-2xl transition-all duration-1000 delay-900 ${
+            className={`relative overflow-hidden rounded-2xl border-2 border-warm-orange/50 shadow-2xl transition-all duration-1000 delay-900 ${
               isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.72 0.22 35 / 0.15) 0%, oklch(0.62 0.15 240 / 0.12) 100%)",
+            }}
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-warm-orange/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-cool-blue/20 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-warm-orange/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-cool-blue/20 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative space-y-6">
+            <div className="relative p-6 md:p-12 space-y-6">
               <div className="flex items-center justify-center">
                 <Gift className="h-12 w-12 text-warm-orange animate-bounce" />
               </div>
 
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-center">
+              <h2 className="text-2xl md:text-4xl font-serif font-bold text-center">
                 🎁 Wait! Claim Your Exclusive Coupon Code
               </h2>
 
-              <div className="bg-card/80 backdrop-blur-sm rounded-xl p-6 border border-border/50">
+              <div className="bg-card/80 backdrop-blur-sm rounded-xl p-5 md:p-6 border border-border/50">
                 <p className="text-center text-muted-foreground mb-4">
                   Apna special coupon code claim karne ke liye:
                 </p>
-                <div className="bg-warm-orange/10 border-2 border-warm-orange/50 rounded-lg p-6 mb-4">
+                <div
+                  className="rounded-lg p-4 md:p-6 mb-4"
+                  style={{
+                    background: "oklch(0.72 0.22 35 / 0.10)",
+                    border: "2px solid oklch(0.72 0.22 35 / 0.45)",
+                  }}
+                >
                   <p className="text-center text-2xl md:text-3xl font-bold font-mono text-warm-orange tracking-wider">
                     SYSTEMLEAD
                   </p>
                 </div>
-                <p className="text-center text-muted-foreground">
+                <p className="text-center text-muted-foreground text-sm md:text-base">
                   Message{" "}
                   <span className="font-semibold text-foreground">
-                    'SYSTEMLEAD'
+                    &apos;SYSTEMLEAD&apos;
                   </span>{" "}
                   on WhatsApp to claim your coupon
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                <div className="order-2 md:order-1">
-                  <img
-                    src="/assets/generated/whatsapp-mockup.dim_400x600.png"
-                    alt="WhatsApp Chat"
-                    className="rounded-xl shadow-xl transform hover:scale-105 transition-transform duration-500 mx-auto"
-                  />
-                </div>
-
-                <div className="order-1 md:order-2 space-y-6">
+              {/* Mobile: full-width button on top, image below */}
+              <div className="flex flex-col items-center gap-6 w-full">
+                {/* CTA — always full width on mobile */}
+                <div className="w-full space-y-4">
                   <Button
+                    data-ocid="sales.whatsapp_button"
                     size="lg"
                     onClick={() => window.open(whatsappLink, "_blank")}
-                    className="w-full bg-[#25D366] hover:bg-[#20BA5A] text-white text-lg px-8 py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    className="w-full bg-[#25D366] hover:bg-[#20BA5A] text-white text-base md:text-lg px-4 py-6 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
                   >
-                    <MessageCircle className="mr-2 h-6 w-6" />
-                    Chat on WhatsApp & Claim Coupon
+                    <MessageCircle className="mr-2 h-5 w-5 shrink-0" />
+                    <span>Chat on WhatsApp &amp; Claim Coupon</span>
                   </Button>
 
-                  <div className="space-y-3 text-sm text-muted-foreground">
-                    <p className="flex items-start">
-                      <span className="mr-2">✓</span>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p className="flex items-start gap-2">
+                      <span className="shrink-0 mt-0.5">✓</span>
                       <span>Instant response aur personal guidance</span>
                     </p>
-                    <p className="flex items-start">
-                      <span className="mr-2">✓</span>
+                    <p className="flex items-start gap-2">
+                      <span className="shrink-0 mt-0.5">✓</span>
                       <span>Exclusive discount with coupon code</span>
                     </p>
-                    <p className="flex items-start">
-                      <span className="mr-2">✓</span>
+                    <p className="flex items-start gap-2">
+                      <span className="shrink-0 mt-0.5">✓</span>
                       <span>Direct access to Ashfaq Sheikh</span>
                     </p>
                   </div>
+                </div>
+
+                {/* Mockup image — always below on mobile */}
+                <div className="w-full flex justify-center">
+                  <img
+                    src="/assets/generated/whatsapp-mockup.dim_400x600.png"
+                    alt="WhatsApp Chat"
+                    className="rounded-xl shadow-xl hover:scale-105 transition-transform duration-500"
+                    style={{ maxWidth: "min(260px, 100%)" }}
+                  />
                 </div>
               </div>
             </div>
@@ -216,8 +231,9 @@ export function SalesPage() {
             }`}
           >
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto italic">
-              "Yaad rakhein: Yeh sirf ek transaction nahi hai. Yeh aapki journey
-              ki shuruaat hai. Aur main aapke saath hoon har step par."
+              &ldquo;Yaad rakhein: Yeh sirf ek transaction nahi hai. Yeh aapki
+              journey ki shuruaat hai. Aur main aapke saath hoon har step
+              par.&rdquo;
             </p>
             <p className="font-semibold text-warm-orange text-xl">
               - Ashfaq Sheikh

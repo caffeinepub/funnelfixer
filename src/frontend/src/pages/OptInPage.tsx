@@ -1,10 +1,25 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useActor } from "@/hooks/useActor";
 import { useCreateUser } from "@/hooks/useQueries";
 import { useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+
+function parseBackendError(error: unknown): string {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (msg.includes("already exists")) {
+    return "Yeh email already registered hai. Koi doosra email try karein.";
+  }
+  if (msg.includes("empty")) {
+    return "Naam aur email dono zaroori hain.";
+  }
+  if (msg.includes("Actor not initialized") || msg.includes("actor")) {
+    return "System load ho raha hai. Thodi der baad dobara try karein.";
+  }
+  return "Submission fail ho gayi. Please internet check karke dobara try karein.";
+}
 
 export function OptInPage() {
   const navigate = useNavigate();
@@ -12,7 +27,15 @@ export function OptInPage() {
   const [email, setEmail] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const { mutate: createUser, isPending, isSuccess } = useCreateUser();
+  const [errorMsg, setErrorMsg] = useState("");
+  const { actor, isFetching: isActorLoading } = useActor();
+  const {
+    mutate: createUser,
+    isPending,
+    isSuccess,
+    isError,
+    error,
+  } = useCreateUser();
 
   useEffect(() => {
     setIsVisible(true);
@@ -21,18 +44,42 @@ export function OptInPage() {
   useEffect(() => {
     if (isSuccess) {
       setShowConfirmation(true);
+      setErrorMsg("");
       setTimeout(() => {
         navigate({ to: "/presentation" });
       }, 2500);
     }
   }, [isSuccess, navigate]);
 
+  useEffect(() => {
+    if (isError && error) {
+      setErrorMsg(parseBackendError(error));
+    }
+  }, [isError, error]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim() && email.trim()) {
-      createUser({ name: name.trim(), email: email.trim() });
+    setErrorMsg("");
+
+    if (!name.trim()) {
+      setErrorMsg("Naam zaroor bharein.");
+      return;
     }
+
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setErrorMsg("Sahi email address bharein.");
+      return;
+    }
+
+    if (!actor) {
+      setErrorMsg("System load ho raha hai, thodi der baad try karein.");
+      return;
+    }
+
+    createUser({ name: name.trim(), email: email.trim() });
   };
+
+  const isSubmitDisabled = isPending;
 
   if (showConfirmation) {
     return (
@@ -43,7 +90,7 @@ export function OptInPage() {
             Thank You! 💌
           </h2>
           <p className="text-xl text-muted-foreground max-w-md">
-            Check your inbox for next steps
+            Ab aap training dekh sakte hain
           </p>
         </div>
       </div>
@@ -125,6 +172,14 @@ export function OptInPage() {
               isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
           >
+            {/* Actor loading indicator */}
+            {isActorLoading && (
+              <div className="flex items-center justify-center gap-2 mb-4 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>System load ho raha hai...</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-base">
@@ -132,10 +187,14 @@ export function OptInPage() {
                 </Label>
                 <Input
                   id="name"
+                  data-ocid="optin.name.input"
                   type="text"
                   placeholder="Apna naam enter karein"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setErrorMsg("");
+                  }}
                   required
                   className="h-12 text-base"
                   disabled={isPending}
@@ -148,31 +207,48 @@ export function OptInPage() {
                 </Label>
                 <Input
                   id="email"
+                  data-ocid="optin.email.input"
                   type="email"
                   placeholder="your@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setErrorMsg("");
+                  }}
                   required
                   className="h-12 text-base"
                   disabled={isPending}
                 />
               </div>
 
+              {/* Error message */}
+              {errorMsg && (
+                <div
+                  data-ocid="optin.error_state"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm"
+                >
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 size="lg"
-                disabled={isPending}
+                data-ocid="optin.submit_button"
+                disabled={isSubmitDisabled}
                 className="w-full text-lg py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold"
                 style={{
-                  backgroundColor: "#e8650a",
+                  backgroundColor: isSubmitDisabled ? "#b8490a" : "#e8650a",
                   color: "#ffffff",
                   border: "none",
+                  opacity: isSubmitDisabled ? 0.7 : 1,
                 }}
               >
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Processing...
+                    Submit ho raha hai...
                   </>
                 ) : (
                   "Yes, I Want to Learn"

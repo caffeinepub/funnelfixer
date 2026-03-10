@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Fraunces";
+  src: url("/assets/fonts/Fraunces.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/GeneralSans-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --radius: 0.625rem;
@@ -38,9 +54,10 @@
     --sidebar-border: 0.922 0 0;
     --sidebar-ring: 0.708 0 0;
 
-    /* Custom warm gradient colors */
-    --warm-orange: 0.68 0.18 35;
+    /* Custom brand colors */
+    --warm-orange: 0.72 0.22 35;
     --cool-blue: 0.62 0.15 240;
+    --success-green: 0.7 0.18 145;
   }
 
   .dark {
@@ -73,23 +90,24 @@
     --sidebar-primary: 0.488 0.243 264.376;
     --sidebar-primary-foreground: 0.985 0 0;
     --sidebar-accent: 0.269 0 0;
-    --sidebar-accent-foreground: 0.985 0 0;
+    --sidebar-accent-foreground: 0.205 0 0;
     --sidebar-border: 1 0 0 / 10%;
     --sidebar-ring: 0.439 0 0;
 
-    /* Custom warm gradient colors for dark mode */
-    --warm-orange: 0.72 0.2 35;
+    /* Custom brand colors dark mode */
+    --warm-orange: 0.75 0.24 35;
     --cool-blue: 0.65 0.18 240;
+    --success-green: 0.72 0.2 145;
   }
 
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-      "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-      "Helvetica Neue", sans-serif;
+    font-family: "General Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -100,7 +118,7 @@
   h4,
   h5,
   h6 {
-    font-family: "Georgia", "Times New Roman", serif;
+    font-family: "Fraunces", "Georgia", "Times New Roman", serif;
   }
 }
 
@@ -127,6 +145,18 @@
 
   .border-cool-blue {
     border-color: oklch(var(--cool-blue));
+  }
+
+  .text-success-green {
+    color: oklch(var(--success-green));
+  }
+
+  .bg-success-green {
+    background-color: oklch(var(--success-green));
+  }
+
+  .border-success-green {
+    border-color: oklch(var(--success-green));
   }
 
   .animate-in {
