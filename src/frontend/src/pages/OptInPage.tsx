@@ -4,8 +4,8 @@ import { Label } from "@/components/ui/label";
 import { useActor } from "@/hooks/useActor";
 import { useCreateUser } from "@/hooks/useQueries";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 function parseBackendError(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
@@ -16,9 +16,9 @@ function parseBackendError(error: unknown): string {
     return "Naam aur email dono zaroori hain.";
   }
   if (msg.includes("Actor not initialized") || msg.includes("actor")) {
-    return "System load ho raha hai. Thodi der baad dobara try karein.";
+    return "System abhi load ho raha hai. Thodi der baad dobara try karein.";
   }
-  return "Submission fail ho gayi. Please internet check karke dobara try karein.";
+  return "Submit nahi hua. Dobara try karein.";
 }
 
 export function OptInPage() {
@@ -28,6 +28,7 @@ export function OptInPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const retryRef = useRef<(() => void) | null>(null);
   const { actor, isFetching: isActorLoading } = useActor();
   const {
     mutate: createUser,
@@ -35,6 +36,7 @@ export function OptInPage() {
     isSuccess,
     isError,
     error,
+    reset,
   } = useCreateUser();
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function OptInPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
+    reset();
 
     if (!name.trim()) {
       setErrorMsg("Naam zaroor bharein.");
@@ -71,15 +74,41 @@ export function OptInPage() {
       return;
     }
 
+    const doSubmit = () => {
+      createUser({ name: name.trim(), email: email.trim() });
+    };
+
+    retryRef.current = doSubmit;
+
     if (!actor) {
-      setErrorMsg("System load ho raha hai, thodi der baad try karein.");
+      // Wait for actor to load then retry
+      const interval = setInterval(() => {
+        if (actor) {
+          clearInterval(interval);
+          doSubmit();
+        }
+      }, 500);
+      setTimeout(() => {
+        clearInterval(interval);
+        if (!actor) {
+          setErrorMsg(
+            "System connect nahi ho pa raha. Internet check karke dobara try karein.",
+          );
+        }
+      }, 8000);
       return;
     }
 
-    createUser({ name: name.trim(), email: email.trim() });
+    doSubmit();
   };
 
-  const isSubmitDisabled = isPending;
+  const handleRetry = () => {
+    setErrorMsg("");
+    reset();
+    if (retryRef.current) {
+      retryRef.current();
+    }
+  };
 
   if (showConfirmation) {
     return (
@@ -99,18 +128,8 @@ export function OptInPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Parallax Background */}
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-warm-orange/10 via-background to-cool-blue/10"
-        style={{
-          backgroundImage:
-            "url(/assets/generated/progress-imagery.dim_800x400.png)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-          opacity: 0.1,
-        }}
-      />
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-warm-orange/10 via-background to-cool-blue/10" />
 
       <div className="relative container py-16 md:py-24">
         <div
@@ -172,11 +191,10 @@ export function OptInPage() {
               isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
           >
-            {/* Actor loading indicator */}
             {isActorLoading && (
               <div className="flex items-center justify-center gap-2 mb-4 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>System load ho raha hai...</span>
+                <span>System connect ho raha hai...</span>
               </div>
             )}
 
@@ -221,14 +239,26 @@ export function OptInPage() {
                 />
               </div>
 
-              {/* Error message */}
+              {/* Error message with retry */}
               {errorMsg && (
                 <div
                   data-ocid="optin.error_state"
-                  className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm"
+                  className="flex flex-col gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/30"
                 >
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{errorMsg}</span>
+                  <div className="flex items-start gap-2 text-destructive text-sm">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>{errorMsg}</span>
+                  </div>
+                  {isError && (
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="flex items-center gap-2 text-sm font-semibold text-warm-orange hover:underline self-start"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Dobara Try Karein
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -236,13 +266,13 @@ export function OptInPage() {
                 type="submit"
                 size="lg"
                 data-ocid="optin.submit_button"
-                disabled={isSubmitDisabled}
+                disabled={isPending}
                 className="w-full text-lg py-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold"
                 style={{
-                  backgroundColor: isSubmitDisabled ? "#b8490a" : "#e8650a",
+                  backgroundColor: isPending ? "#b8490a" : "#e8650a",
                   color: "#ffffff",
                   border: "none",
-                  opacity: isSubmitDisabled ? 0.7 : 1,
+                  opacity: isPending ? 0.7 : 1,
                 }}
               >
                 {isPending ? (

@@ -8,8 +8,16 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: async ({ name, email }: { name: string; email: string }) => {
       if (!actor) throw new Error("Actor not initialized");
-      return await actor.createUser(name, email);
+      try {
+        return await actor.createUser(name, email);
+      } catch (err) {
+        // Rethrow with original message preserved
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(msg);
+      }
     },
+    retry: 2,
+    retryDelay: 1500,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
