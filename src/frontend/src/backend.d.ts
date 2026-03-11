@@ -24,6 +24,9 @@ export interface User {
     timestamp: Time;
 }
 export interface backendInterface {
+    adminLogin(password: string): Promise<boolean>;
+    setWebhookUrl(password: string, url: string): Promise<boolean>;
+    getWebhookUrl(password: string): Promise<string>;
     createUser(name: string, email: string): Promise<boolean>;
     getAllUsers(): Promise<Array<User>>;
     getAllVisitors(): Promise<Array<Visitor>>;

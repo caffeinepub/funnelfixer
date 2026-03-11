@@ -3,9 +3,8 @@ import Map "mo:core/Map";
 import Time "mo:core/Time";
 import List "mo:core/List";
 import Order "mo:core/Order";
-import Array "mo:core/Array";
-import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
+import IC "ic:aaaaa-aa";
 
 actor {
   type User = {
@@ -44,6 +43,28 @@ actor {
   let visitors = Map.empty<Text, Visitor>();
   var salesPageViews = 0;
   var completedOptIns = 0;
+  var webhookUrl : Text = "";
+
+  let adminPassword = "funnelfixer2024";
+
+  public query func adminLogin(password : Text) : async Bool {
+    Text.equal(password, adminPassword);
+  };
+
+  public shared func setWebhookUrl(password : Text, url : Text) : async Bool {
+    if (not Text.equal(password, adminPassword)) {
+      return false;
+    };
+    webhookUrl := url;
+    true;
+  };
+
+  public query func getWebhookUrl(password : Text) : async Text {
+    if (not Text.equal(password, adminPassword)) {
+      Runtime.trap("Unauthorized");
+    };
+    webhookUrl;
+  };
 
   public shared ({ caller }) func createUser(name : Text, email : Text) : async Bool {
     if (Text.equal(name, "")) { Runtime.trap("Name cannot be empty") };
@@ -58,6 +79,27 @@ actor {
           timestamp = Time.now();
         };
         users.add(email, newUser);
+
+        // Fire Make.com webhook if URL is set
+        if (not Text.equal(webhookUrl, "")) {
+          let jsonBody = "{\"name\":\"" # name # "\",\"email\":\"" # email # "\"}";
+          let reqHeaders : [IC.http_header] = [
+            { name = "Content-Type"; value = "application/json" }
+          ];
+          let req : IC.http_request_args = {
+            url = webhookUrl;
+            max_response_bytes = ?2000;
+            headers = reqHeaders;
+            body = ?jsonBody.encodeUtf8();
+            method = #post;
+            transform = null;
+            is_replicated = ?false;
+          };
+          try {
+            ignore await IC.http_request(req);
+          } catch (_) {};
+        };
+
         true;
       };
     };
@@ -106,18 +148,10 @@ actor {
   public shared ({ caller }) func updateVisitor(ip : Text, page : Text) : async Bool {
     func updatePages(visits : { bridgePage : Bool; optInPage : Bool; presentationPage : Bool; salesPage : Bool }, page : Text) : { bridgePage : Bool; optInPage : Bool; presentationPage : Bool; salesPage : Bool } {
       switch (page) {
-        case ("bridgePage") {
-          { visits with bridgePage = true };
-        };
-        case ("optInPage") {
-          { visits with optInPage = true };
-        };
-        case ("presentationPage") {
-          { visits with presentationPage = true };
-        };
-        case ("salesPage") {
-          { visits with salesPage = true };
-        };
+        case ("bridgePage") { { visits with bridgePage = true } };
+        case ("optInPage") { { visits with optInPage = true } };
+        case ("presentationPage") { { visits with presentationPage = true } };
+        case ("salesPage") { { visits with salesPage = true } };
         case (_) { visits };
       };
     };
@@ -180,18 +214,12 @@ actor {
     mentor : Text;
     coupon : Text;
   } {
-    let totalVisitors = visitors.size();
-    let totalOptIns = completedOptIns;
-    let totalSales = salesPageViews;
-    let mentor = "Ashfaq Sheikh";
-    let coupon = "SYSTEMLEAD";
-
     {
-      totalVisitors;
-      totalOptIns;
-      totalSales;
-      mentor;
-      coupon;
+      totalVisitors = visitors.size();
+      totalOptIns = completedOptIns;
+      totalSales = salesPageViews;
+      mentor = "Ashfaq Sheikh";
+      coupon = "SYSTEMLEAD";
     };
   };
 };
