@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useActor } from "@/hooks/useActor";
 import { useCreateUser } from "@/hooks/useQueries";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 function parseBackendError(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
@@ -15,10 +14,7 @@ function parseBackendError(error: unknown): string {
   if (msg.includes("empty")) {
     return "Naam aur email dono zaroori hain.";
   }
-  if (msg.includes("Actor not initialized") || msg.includes("actor")) {
-    return "System abhi load ho raha hai. Thodi der baad dobara try karein.";
-  }
-  return "Submit nahi hua. Dobara try karein.";
+  return "Submit nahi hua. Internet check karein aur dobara try karein.";
 }
 
 export function OptInPage() {
@@ -28,8 +24,7 @@ export function OptInPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const retryRef = useRef<(() => void) | null>(null);
-  const { actor, isFetching: isActorLoading } = useActor();
+
   const {
     mutate: createUser,
     isPending,
@@ -49,7 +44,7 @@ export function OptInPage() {
       setErrorMsg("");
       setTimeout(() => {
         navigate({ to: "/presentation" });
-      }, 2500);
+      }, 2000);
     }
   }, [isSuccess, navigate]);
 
@@ -64,50 +59,26 @@ export function OptInPage() {
     setErrorMsg("");
     reset();
 
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
       setErrorMsg("Naam zaroor bharein.");
       return;
     }
-
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setErrorMsg("Sahi email address bharein.");
       return;
     }
 
-    const doSubmit = () => {
-      createUser({ name: name.trim(), email: email.trim() });
-    };
-
-    retryRef.current = doSubmit;
-
-    if (!actor) {
-      // Wait for actor to load then retry
-      const interval = setInterval(() => {
-        if (actor) {
-          clearInterval(interval);
-          doSubmit();
-        }
-      }, 500);
-      setTimeout(() => {
-        clearInterval(interval);
-        if (!actor) {
-          setErrorMsg(
-            "System connect nahi ho pa raha. Internet check karke dobara try karein.",
-          );
-        }
-      }, 8000);
-      return;
-    }
-
-    doSubmit();
+    createUser({ name: trimmedName, email: trimmedEmail });
   };
 
   const handleRetry = () => {
+    if (!name.trim() || !email.trim()) return;
     setErrorMsg("");
     reset();
-    if (retryRef.current) {
-      retryRef.current();
-    }
+    createUser({ name: name.trim(), email: email.trim() });
   };
 
   if (showConfirmation) {
@@ -128,7 +99,6 @@ export function OptInPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-warm-orange/10 via-background to-cool-blue/10" />
 
       <div className="relative container py-16 md:py-24">
@@ -137,7 +107,6 @@ export function OptInPage() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           }`}
         >
-          {/* Headline */}
           <div className="text-center space-y-6 mb-12">
             <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground leading-tight">
               Sirf <span className="text-warm-orange">15 Minutes</span> Mein
@@ -152,7 +121,6 @@ export function OptInPage() {
             </p>
           </div>
 
-          {/* What This Is NOT */}
           <div
             className={`bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-8 mb-12 transition-all duration-1000 delay-300 ${
               isVisible
@@ -185,19 +153,11 @@ export function OptInPage() {
             </ul>
           </div>
 
-          {/* Form */}
           <div
             className={`bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-8 md:p-12 shadow-2xl transition-all duration-1000 delay-500 ${
               isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
           >
-            {isActorLoading && (
-              <div className="flex items-center justify-center gap-2 mb-4 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>System connect ho raha hai...</span>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-base">
@@ -239,7 +199,6 @@ export function OptInPage() {
                 />
               </div>
 
-              {/* Error message with retry */}
               {errorMsg && (
                 <div
                   data-ocid="optin.error_state"
@@ -249,16 +208,13 @@ export function OptInPage() {
                     <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                     <span>{errorMsg}</span>
                   </div>
-                  {isError && (
-                    <button
-                      type="button"
-                      onClick={handleRetry}
-                      className="flex items-center gap-2 text-sm font-semibold text-warm-orange hover:underline self-start"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Dobara Try Karein
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    className="flex items-center gap-2 text-sm font-semibold text-warm-orange hover:underline self-start"
+                  >
+                    Dobara Try Karein
+                  </button>
                 </div>
               )}
 

@@ -7,14 +7,10 @@ export function useCreateUser() {
 
   return useMutation({
     mutationFn: async ({ name, email }: { name: string; email: string }) => {
-      if (!actor) throw new Error("Actor not initialized");
-      try {
-        return await actor.createUser(name, email);
-      } catch (err) {
-        // Rethrow with original message preserved
-        const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(msg);
-      }
+      if (!actor)
+        throw new Error("System connect nahi hua. Page refresh karein.");
+      const result = await actor.createUser(name, email);
+      return result;
     },
     retry: 2,
     retryDelay: 1500,

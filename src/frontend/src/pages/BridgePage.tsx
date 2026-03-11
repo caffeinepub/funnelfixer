@@ -282,6 +282,35 @@ function ZoneDivider({ label, color }: { label: string; color: string }) {
   );
 }
 
+function GuidancePhoto() {
+  const [imgError, setImgError] = useState(false);
+
+  if (imgError) {
+    return (
+      <div
+        className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl flex items-center justify-center text-3xl font-serif font-bold text-white shadow-xl shrink-0"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.72 0.22 35) 0%, oklch(0.62 0.20 35) 100%)",
+          outline: "3px solid oklch(0.72 0.22 35 / 0.35)",
+        }}
+      >
+        AS
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src="/assets/uploads/WhatsApp-Image-2026-03-09-at-2.08.08-AM-1.jpeg"
+      alt="Ashfaq Sheikh"
+      className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover shadow-xl shrink-0"
+      style={{ outline: "3px solid oklch(0.72 0.22 35 / 0.35)" }}
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
 export function BridgePage() {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
@@ -550,14 +579,7 @@ export function BridgePage() {
           <div className="max-w-3xl mx-auto">
             <div className="bg-white/80 backdrop-blur-sm border border-border/50 rounded-2xl p-8 md:p-10 shadow-sm">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-7">
-                <div className="shrink-0">
-                  <img
-                    src="/assets/uploads/WhatsApp-Image-2026-03-09-at-2.08.08-AM-1.jpeg"
-                    alt="Ashfaq Sheikh"
-                    className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover shadow-xl"
-                    style={{ outline: "3px solid oklch(0.72 0.22 35 / 0.35)" }}
-                  />
-                </div>
+                <GuidancePhoto />
                 <div className="space-y-3 text-center sm:text-left">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-warm-orange mb-1">

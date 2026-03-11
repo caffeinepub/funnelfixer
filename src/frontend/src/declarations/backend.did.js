@@ -26,6 +26,9 @@ export const Visitor = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  'adminLogin' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+  'setWebhookUrl' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+  'getWebhookUrl' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
   'createUser' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getAllVisitors' : IDL.Func([], [IDL.Vec(Visitor)], ['query']),
@@ -86,6 +89,9 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    'adminLogin' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+    'setWebhookUrl' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
+    'getWebhookUrl' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'createUser' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
     'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getAllVisitors' : IDL.Func([], [IDL.Vec(Visitor)], ['query']),

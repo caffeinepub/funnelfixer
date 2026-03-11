@@ -3,6 +3,34 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+function GuidancePhoto() {
+  const [imgError, setImgError] = useState(false);
+
+  if (imgError) {
+    return (
+      <div
+        className="rounded-2xl shadow-2xl w-full max-w-md flex items-center justify-center text-6xl font-serif font-bold text-white"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.72 0.22 35) 0%, oklch(0.62 0.20 35) 100%)",
+          minHeight: "280px",
+        }}
+      >
+        AS
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src="/assets/uploads/WhatsApp-Image-2026-03-09-at-2.08.08-AM-1.jpeg"
+      alt="Ashfaq Sheikh"
+      className="rounded-2xl shadow-2xl w-full max-w-md transform hover:scale-105 transition-transform duration-500"
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
 export function PresentationPage() {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
@@ -42,11 +70,7 @@ export function PresentationPage() {
             }`}
           >
             <div className="relative">
-              <img
-                src="/assets/uploads/WhatsApp-Image-2026-03-09-at-2.08.08-AM-1.jpeg"
-                alt="Ashfaq Sheikh"
-                className="rounded-2xl shadow-2xl w-full max-w-md transform hover:scale-105 transition-transform duration-500"
-              />
+              <GuidancePhoto />
               <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-6 py-3 rounded-full border border-border/50 shadow-xl">
                 <p className="font-semibold text-warm-orange">
                   Your Guidance: Ashfaq Sheikh

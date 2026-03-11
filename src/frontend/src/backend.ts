@@ -106,6 +106,9 @@ export interface User {
     timestamp: Time;
 }
 export interface backendInterface {
+    adminLogin(password: string): Promise<boolean>;
+    setWebhookUrl(password: string, url: string): Promise<boolean>;
+    getWebhookUrl(password: string): Promise<string>;
     createUser(name: string, email: string): Promise<boolean>;
     getAllUsers(): Promise<Array<User>>;
     getAllVisitors(): Promise<Array<Visitor>>;
@@ -134,6 +137,48 @@ export interface backendInterface {
 }
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async adminLogin(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminLogin(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminLogin(arg0);
+            return result;
+        }
+    }
+    async setWebhookUrl(arg0: string, arg1: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setWebhookUrl(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setWebhookUrl(arg0, arg1);
+            return result;
+        }
+    }
+    async getWebhookUrl(arg0: string): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getWebhookUrl(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getWebhookUrl(arg0);
+            return result;
+        }
+    }
     async createUser(arg0: string, arg1: string): Promise<boolean> {
         if (this.processError) {
             try {

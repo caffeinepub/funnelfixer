@@ -12,14 +12,8 @@ import {
   Users,
   Webhook,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { backendInterface } from "../backend";
-
-interface AdminBackend extends backendInterface {
-  adminLogin(password: string): Promise<boolean>;
-  setWebhookUrl(password: string, url: string): Promise<boolean>;
-  getWebhookUrl(password: string): Promise<string>;
-}
 
 interface Lead {
   name: string;
@@ -52,126 +46,104 @@ function downloadCSV(leads: Lead[]) {
   URL.revokeObjectURL(url);
 }
 
-async function retryCall<T>(
-  fn: () => Promise<T>,
-  retries = 3,
-  delayMs = 1500,
-): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
-  }
-  throw new Error("Max retries reached");
-}
-
 export function AdminPage() {
-  const { actor: _actor, isFetching: actorLoading } = useActor();
-  const actor = _actor as AdminBackend | null;
+  const { actor, isFetching: actorLoading } = useActor();
+  const actorRef = useRef<backendInterface | null>(null);
+
+  useEffect(() => {
+    actorRef.current = actor;
+  }, [actor]);
+
   const [password, setPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
+  // Store password for retry when actor loads
+  const pendingPasswordRef = useRef<string | null>(null);
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
-  const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookInput, setWebhookInput] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const [webhookMsg, setWebhookMsg] = useState("");
 
   const loadLeads = useCallback(async () => {
-    if (!actor) return;
+    const a = actorRef.current;
+    if (!a) return;
     setIsLoadingLeads(true);
     try {
-      const users = await retryCall(() => actor.getAllUsers());
+      const users = await a.getAllUsers();
       setLeads(users as Lead[]);
     } catch {
       // ignore
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [actor]);
+  }, []);
 
-  const loadWebhookUrl = useCallback(
+  const loadWebhookUrl = useCallback(async (pw: string) => {
+    const a = actorRef.current;
+    if (!a) return;
+    try {
+      const url = await a.getWebhookUrl(pw);
+      setWebhookUrl(url as string);
+      setWebhookInput(url as string);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const attemptLogin = useCallback(
     async (pw: string) => {
-      if (!actor) return;
-      try {
-        const url = await retryCall(() => actor.getWebhookUrl(pw));
-        setWebhookUrl(url as string);
-        setWebhookInput(url as string);
-      } catch {
-        // ignore
+      const a = actorRef.current;
+      if (!a) {
+        pendingPasswordRef.current = pw;
+        return;
       }
-    },
-    [actor],
-  );
-
-  const doLogin = useCallback(
-    async (pw: string) => {
-      if (!actor) return false;
-      const ok = await retryCall(() => actor.adminLogin(pw));
-      return ok;
-    },
-    [actor],
-  );
-
-  const handleAutoLogin = useCallback(
-    async (pw: string) => {
-      if (!actor || !pw) return;
+      setIsLoggingIn(true);
+      setLoginError("");
+      setShowRetry(false);
       try {
-        const ok = await doLogin(pw);
+        const ok = await a.adminLogin(pw);
         if (ok) {
+          sessionStorage.setItem("admin_pw", pw);
           setIsLoggedIn(true);
           loadLeads();
           loadWebhookUrl(pw);
+        } else {
+          setLoginError("Galat password. Dobara try karein.");
+          setShowRetry(true);
         }
-      } catch {
-        // ignore on auto-login
+      } catch (_err) {
+        setLoginError("Connection issue. Dobara try karein.");
+        setShowRetry(true);
+      } finally {
+        setIsLoggingIn(false);
       }
     },
-    [actor, doLogin, loadLeads, loadWebhookUrl],
+    [loadLeads, loadWebhookUrl],
   );
 
+  // On mount: check stored password
   useEffect(() => {
     const storedPw = sessionStorage.getItem("admin_pw") ?? "";
     if (storedPw) {
       setPassword(storedPw);
-      handleAutoLogin(storedPw);
+      pendingPasswordRef.current = storedPw;
     }
-  }, [handleAutoLogin]);
+  }, []);
 
-  const attemptLogin = async (pw: string) => {
-    if (!actor) {
-      setLoginError("System load ho raha hai, thodi der baad try karein.");
-      setShowRetry(true);
-      return;
+  // When actor becomes available, fire pending login
+  useEffect(() => {
+    if (actor && pendingPasswordRef.current) {
+      const pw = pendingPasswordRef.current;
+      pendingPasswordRef.current = null;
+      attemptLogin(pw);
     }
-    setIsLoggingIn(true);
-    setLoginError("");
-    setShowRetry(false);
-    try {
-      const ok = await doLogin(pw);
-      if (ok) {
-        sessionStorage.setItem("admin_pw", pw);
-        setIsLoggedIn(true);
-        loadLeads();
-        loadWebhookUrl(pw);
-      } else {
-        setLoginError("Galat password. Dobara try karein.");
-      }
-    } catch {
-      setLoginError("Connection issue. Dobara try karein.");
-      setShowRetry(true);
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
+  }, [actor, attemptLogin]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,13 +151,12 @@ export function AdminPage() {
   };
 
   const handleSaveWebhook = async () => {
-    if (!actor) return;
+    const a = actorRef.current;
+    if (!a) return;
     setIsSavingWebhook(true);
     setWebhookMsg("");
     try {
-      const ok = await retryCall(() =>
-        actor.setWebhookUrl(password, webhookInput),
-      );
+      const ok = await a.setWebhookUrl(password, webhookInput);
       if (ok) {
         setWebhookUrl(webhookInput);
         setWebhookMsg("Webhook URL save ho gayi!");
@@ -207,6 +178,8 @@ export function AdminPage() {
     setLeads([]);
   };
 
+  const isWaiting = !!pendingPasswordRef.current && (actorLoading || !actor);
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-background to-blue-50">
@@ -221,6 +194,14 @@ export function AdminPage() {
                 FunnelFixer Dashboard
               </p>
             </div>
+
+            {(actorLoading || isWaiting) && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>System connect ho raha hai...</span>
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="admin-password">Password</Label>
@@ -237,9 +218,10 @@ export function AdminPage() {
                   }}
                   required
                   className="h-11"
-                  disabled={isLoggingIn}
+                  disabled={isLoggingIn || isWaiting}
                 />
               </div>
+
               {loginError && (
                 <div
                   data-ocid="admin.login.error_state"
@@ -249,10 +231,11 @@ export function AdminPage() {
                   <span>{loginError}</span>
                 </div>
               )}
+
               <Button
                 type="submit"
                 data-ocid="admin.login.submit_button"
-                disabled={isLoggingIn || actorLoading}
+                disabled={isLoggingIn || isWaiting}
                 className="w-full h-11 font-semibold"
                 style={{
                   backgroundColor: "#e8650a",
@@ -260,20 +243,18 @@ export function AdminPage() {
                   border: "none",
                 }}
               >
-                {isLoggingIn ? (
+                {isLoggingIn || isWaiting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Login ho raha hai...
-                  </>
-                ) : actorLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    System load ho raha hai...
+                    {isWaiting
+                      ? "Connect ho raha hai..."
+                      : "Login ho raha hai..."}
                   </>
                 ) : (
                   "Login Karein"
                 )}
               </Button>
+
               {showRetry && !isLoggingIn && (
                 <Button
                   type="button"

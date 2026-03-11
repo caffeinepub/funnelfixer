@@ -23,6 +23,9 @@ export interface Visitor {
   'timestamp' : Time,
 }
 export interface _SERVICE {
+  'adminLogin' : ActorMethod<[string], boolean>,
+  'setWebhookUrl' : ActorMethod<[string, string], boolean>,
+  'getWebhookUrl' : ActorMethod<[string], string>,
   'createUser' : ActorMethod<[string, string], boolean>,
   'getAllUsers' : ActorMethod<[], Array<User>>,
   'getAllVisitors' : ActorMethod<[], Array<Visitor>>,
