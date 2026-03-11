@@ -8,13 +8,13 @@ import {
   Key,
   Loader2,
   LogOut,
+  RefreshCw,
   Users,
   Webhook,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { backendInterface } from "../backend";
 
-// Extended interface to include admin methods added in backend.d.ts
 interface AdminBackend extends backendInterface {
   adminLogin(password: string): Promise<boolean>;
   setWebhookUrl(password: string, url: string): Promise<boolean>;
@@ -52,13 +52,30 @@ function downloadCSV(leads: Lead[]) {
   URL.revokeObjectURL(url);
 }
 
+async function retryCall<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delayMs = 1500,
+): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error("Max retries reached");
+}
+
 export function AdminPage() {
-  const { actor: _actor } = useActor();
+  const { actor: _actor, isFetching: actorLoading } = useActor();
   const actor = _actor as AdminBackend | null;
   const [password, setPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
@@ -72,7 +89,7 @@ export function AdminPage() {
     if (!actor) return;
     setIsLoadingLeads(true);
     try {
-      const users = await actor.getAllUsers();
+      const users = await retryCall(() => actor.getAllUsers());
       setLeads(users as Lead[]);
     } catch {
       // ignore
@@ -85,7 +102,7 @@ export function AdminPage() {
     async (pw: string) => {
       if (!actor) return;
       try {
-        const url = await actor.getWebhookUrl(pw);
+        const url = await retryCall(() => actor.getWebhookUrl(pw));
         setWebhookUrl(url as string);
         setWebhookInput(url as string);
       } catch {
@@ -95,21 +112,30 @@ export function AdminPage() {
     [actor],
   );
 
+  const doLogin = useCallback(
+    async (pw: string) => {
+      if (!actor) return false;
+      const ok = await retryCall(() => actor.adminLogin(pw));
+      return ok;
+    },
+    [actor],
+  );
+
   const handleAutoLogin = useCallback(
     async (pw: string) => {
       if (!actor || !pw) return;
       try {
-        const ok = await actor.adminLogin(pw);
+        const ok = await doLogin(pw);
         if (ok) {
           setIsLoggedIn(true);
           loadLeads();
           loadWebhookUrl(pw);
         }
       } catch {
-        // ignore
+        // ignore on auto-login
       }
     },
-    [actor, loadLeads, loadWebhookUrl],
+    [actor, doLogin, loadLeads, loadWebhookUrl],
   );
 
   useEffect(() => {
@@ -120,29 +146,36 @@ export function AdminPage() {
     }
   }, [handleAutoLogin]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const attemptLogin = async (pw: string) => {
     if (!actor) {
       setLoginError("System load ho raha hai, thodi der baad try karein.");
+      setShowRetry(true);
       return;
     }
     setIsLoggingIn(true);
     setLoginError("");
+    setShowRetry(false);
     try {
-      const ok = await actor.adminLogin(password);
+      const ok = await doLogin(pw);
       if (ok) {
-        sessionStorage.setItem("admin_pw", password);
+        sessionStorage.setItem("admin_pw", pw);
         setIsLoggedIn(true);
         loadLeads();
-        loadWebhookUrl(password);
+        loadWebhookUrl(pw);
       } else {
         setLoginError("Galat password. Dobara try karein.");
       }
     } catch {
-      setLoginError("Login nahi ho pa raha. Internet check karein.");
+      setLoginError("Connection issue. Dobara try karein.");
+      setShowRetry(true);
     } finally {
       setIsLoggingIn(false);
     }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await attemptLogin(password);
   };
 
   const handleSaveWebhook = async () => {
@@ -150,7 +183,9 @@ export function AdminPage() {
     setIsSavingWebhook(true);
     setWebhookMsg("");
     try {
-      const ok = await actor.setWebhookUrl(password, webhookInput);
+      const ok = await retryCall(() =>
+        actor.setWebhookUrl(password, webhookInput),
+      );
       if (ok) {
         setWebhookUrl(webhookInput);
         setWebhookMsg("Webhook URL save ho gayi!");
@@ -175,7 +210,7 @@ export function AdminPage() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-background to-blue-50">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm px-4">
           <div className="bg-card border border-border/50 rounded-2xl shadow-xl p-8 space-y-6">
             <div className="text-center space-y-2">
               <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
@@ -193,11 +228,12 @@ export function AdminPage() {
                   id="admin-password"
                   data-ocid="admin.password.input"
                   type="password"
-                  placeholder="Admin password"
+                  placeholder="Admin password daalo"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     setLoginError("");
+                    setShowRetry(false);
                   }}
                   required
                   className="h-11"
@@ -207,16 +243,16 @@ export function AdminPage() {
               {loginError && (
                 <div
                   data-ocid="admin.login.error_state"
-                  className="flex items-center gap-2 text-sm text-destructive p-3 rounded-lg bg-destructive/10"
+                  className="flex items-start gap-2 text-sm text-destructive p-3 rounded-lg bg-destructive/10"
                 >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{loginError}</span>
                 </div>
               )}
               <Button
                 type="submit"
                 data-ocid="admin.login.submit_button"
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || actorLoading}
                 className="w-full h-11 font-semibold"
                 style={{
                   backgroundColor: "#e8650a",
@@ -229,10 +265,27 @@ export function AdminPage() {
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     Login ho raha hai...
                   </>
+                ) : actorLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    System load ho raha hai...
+                  </>
                 ) : (
-                  "Login"
+                  "Login Karein"
                 )}
               </Button>
+              {showRetry && !isLoggingIn && (
+                <Button
+                  type="button"
+                  data-ocid="admin.login.retry_button"
+                  variant="outline"
+                  className="w-full h-11 gap-2"
+                  onClick={() => attemptLogin(password)}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Dobara Try Karein
+                </Button>
+              )}
             </form>
           </div>
         </div>
@@ -242,13 +295,10 @@ export function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50/40 via-background to-blue-50/40">
-      {/* Header */}
       <div className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xl font-serif font-bold text-warm-orange">
-              🐺 FunnelFixer
-            </span>
+            <span className="text-xl font-serif font-bold">🐺 FunnelFixer</span>
             <span className="text-sm text-muted-foreground">Admin Panel</span>
           </div>
           <Button
@@ -265,7 +315,6 @@ export function AdminPage() {
       </div>
 
       <div className="container py-8 space-y-8 max-w-4xl">
-        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-card border border-border/50 rounded-xl p-5 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
@@ -300,7 +349,6 @@ export function AdminPage() {
           </div>
         </div>
 
-        {/* Webhook URL */}
         <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-2">
             <Webhook className="w-5 h-5 text-blue-500" />
@@ -347,7 +395,6 @@ export function AdminPage() {
           )}
         </div>
 
-        {/* Leads Table */}
         <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
           <div className="p-6 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -357,17 +404,32 @@ export function AdminPage() {
                 ({leads.length})
               </span>
             </div>
-            <Button
-              data-ocid="admin.leads.download_button"
-              variant="outline"
-              size="sm"
-              onClick={() => downloadCSV(leads)}
-              disabled={leads.length === 0}
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              CSV Download
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                data-ocid="admin.leads.refresh_button"
+                variant="outline"
+                size="sm"
+                onClick={loadLeads}
+                disabled={isLoadingLeads}
+                className="gap-2"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${isLoadingLeads ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+              <Button
+                data-ocid="admin.leads.download_button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadCSV(leads)}
+                disabled={leads.length === 0}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                CSV Download
+              </Button>
+            </div>
           </div>
 
           {isLoadingLeads ? (
